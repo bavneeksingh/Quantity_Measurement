@@ -4,10 +4,10 @@ public class QuantityMeasurementApp {
     enum LengthUnit {
         FEET(1.0),
         INCHES(1.0 / 12.0),
-        YARD(3.0),
-        CENTIMETER(0.0328084);
+        YARDS(3.0),
+        CENTIMETERS(0.0328084);
 
-        private final double factor; // conversion to feet
+        private final double factor;
 
         LengthUnit(double factor) {
             this.factor = factor;
@@ -18,7 +18,7 @@ public class QuantityMeasurementApp {
         }
     }
 
-    // ✅ QuantityLength inside same class
+    // ✅ Core logic class inside
     static class QuantityLength {
 
         private final double value;
@@ -44,7 +44,7 @@ public class QuantityMeasurementApp {
             return unit;
         }
 
-        // ✅ Conversion
+        // ✅ Static conversion (UC5)
         public static double convert(double value, LengthUnit source, LengthUnit target) {
             if (!Double.isFinite(value)) {
                 throw new IllegalArgumentException("Invalid value");
@@ -53,43 +53,20 @@ public class QuantityMeasurementApp {
                 throw new IllegalArgumentException("Units cannot be null");
             }
 
-            double base = value * source.getFactor();   // to feet
-            return base / target.getFactor();           // to target
+            double baseValue = value * source.getFactor(); // to feet
+            return baseValue / target.getFactor();         // to target
         }
 
-        // ✅ Static Add
-        public static QuantityLength add(QuantityLength a, QuantityLength b) {
-            if (a == null || b == null) {
-                throw new IllegalArgumentException("Operands cannot be null");
-            }
-
-            double baseA = a.value * a.unit.getFactor();
-            double baseB = b.value * b.unit.getFactor();
-
-            double sumBase = baseA + baseB;
-
-            double result = sumBase / a.unit.getFactor();
-
-            return new QuantityLength(result, a.unit);
+        // ✅ Instance conversion
+        public QuantityLength convertTo(LengthUnit target) {
+            double converted = convert(this.value, this.unit, target);
+            return new QuantityLength(converted, target);
         }
 
-        // ✅ Overloaded Add
-        public static QuantityLength add(double v1, LengthUnit u1,
-                                         double v2, LengthUnit u2) {
-            return add(new QuantityLength(v1, u1),
-                    new QuantityLength(v2, u2));
-        }
-
-        // ✅ Instance Add
-        public QuantityLength add(QuantityLength other) {
-            return add(this, other);
-        }
-
-        // ✅ Equals (cross-unit comparison)
+        // ✅ Equality (cross-unit)
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
-
             if (obj == null || getClass() != obj.getClass()) return false;
 
             QuantityLength other = (QuantityLength) obj;
@@ -106,21 +83,38 @@ public class QuantityMeasurementApp {
         }
     }
 
-    // ✅ Demo
+    // ✅ Demo methods
+    public static double demonstrateLengthConversion(double value,
+                                                     LengthUnit from,
+                                                     LengthUnit to) {
+        return QuantityLength.convert(value, from, to);
+    }
+
+    public static QuantityLength demonstrateLengthConversion(QuantityLength length,
+                                                             LengthUnit to) {
+        return length.convertTo(to);
+    }
+
+    // ✅ Main method
     public static void main(String[] args) {
 
-        // Equality test
-        QuantityLength q1 = new QuantityLength(1.0, LengthUnit.YARD);
-        QuantityLength q2 = new QuantityLength(36.0, LengthUnit.INCHES);
-        System.out.println("Equal? " + q1.equals(q2)); // true
+        // Example 1: direct conversion
+        double result1 = demonstrateLengthConversion(1.0,
+                LengthUnit.FEET,
+                LengthUnit.INCHES);
 
-        // Addition test
-        QuantityLength result =
-                QuantityLength.add(
-                        new QuantityLength(1.0, LengthUnit.FEET),
-                        new QuantityLength(12.0, LengthUnit.INCHES)
-                );
+        System.out.println("1 FEET -> INCHES = " + result1); // 12.0
 
-        System.out.println("Addition Result: " + result); // 2.0 FEET
+        // Example 2: object conversion
+        QuantityLength q1 = new QuantityLength(1.0, LengthUnit.YARDS);
+        QuantityLength q2 = q1.convertTo(LengthUnit.FEET);
+
+        System.out.println("1 YARD -> FEET = " + q2); // 3.0 FEET
+
+        // Example 3: equality
+        QuantityLength a = new QuantityLength(1.0, LengthUnit.YARDS);
+        QuantityLength b = new QuantityLength(36.0, LengthUnit.INCHES);
+
+        System.out.println("Equal? " + a.equals(b)); // true
     }
 }
