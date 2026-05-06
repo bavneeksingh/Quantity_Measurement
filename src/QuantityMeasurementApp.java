@@ -1,9 +1,15 @@
 public class QuantityMeasurementApp {
 
-    // Step 1: Enum for units with conversion factors (base unit = FEET)
+    // ✅ Updated Enum (ONLY place we change code)
     enum LengthUnit {
         FEET(1.0),
-        INCH(1.0 / 12.0);
+
+        INCH(1.0 / 12.0),        // 1 inch = 1/12 feet
+
+        YARD(3.0),               // 1 yard = 3 feet
+
+        CENTIMETER(0.0328084);   // 1 cm = 0.0328084 feet
+        // (0.393701 inch ÷ 12)
 
         private final double toFeetFactor;
 
@@ -16,7 +22,7 @@ public class QuantityMeasurementApp {
         }
     }
 
-    // Step 2: Single class for all length measurements
+    // ✅ Same class as UC3 (NO changes needed)
     static class QuantityLength {
         private final double value;
         private final LengthUnit unit;
@@ -36,28 +42,24 @@ public class QuantityMeasurementApp {
         @Override
         public boolean equals(Object obj) {
 
-            // Reflexive
             if (this == obj) return true;
 
-            // Null check
             if (obj == null) return false;
 
-            // Type check
             if (getClass() != obj.getClass()) return false;
 
             QuantityLength other = (QuantityLength) obj;
 
-            // Compare after converting to common base (feet)
             return Double.compare(this.toBaseUnit(), other.toBaseUnit()) == 0;
         }
     }
 
-    // Demo
+    // ✅ Demo
     public static void main(String[] args) {
 
-        QuantityLength q1 = new QuantityLength(1.0, LengthUnit.FEET);
-        QuantityLength q2 = new QuantityLength(12.0, LengthUnit.INCH);
+        QuantityLength q1 = new QuantityLength(1.0, LengthUnit.YARD);
+        QuantityLength q2 = new QuantityLength(36.0, LengthUnit.INCH);
 
-        System.out.println("Are equal? " + q1.equals(q2)); // true
+        System.out.println(q1.equals(q2)); // true
     }
 }
