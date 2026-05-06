@@ -1,60 +1,105 @@
 public class QuantityMeasurementApp {
 
-    // ✅ Feet class
-    static class Feet {
-        private final double value;
+    enum LengthUnit {
+        FEET(1.0),
+        INCHES(1.0 / 12.0),
+        YARDS(3.0),
+        CENTIMETERS(0.0328084);
 
-        public Feet(double value) {
+        private final double factor;
+
+        LengthUnit(double factor) {
+            this.factor = factor;
+        }
+
+        public double getFactor() {
+            return factor;
+        }
+    }
+
+    static class QuantityLength {
+
+        private final double value;
+        private final LengthUnit unit;
+        private static final double EPSILON = 1e-6;
+
+        public QuantityLength(double value, LengthUnit unit) {
             if (!Double.isFinite(value)) {
                 throw new IllegalArgumentException("Invalid value");
             }
+            if (unit == null) {
+                throw new IllegalArgumentException("Unit cannot be null");
+            }
             this.value = value;
+            this.unit = unit;
         }
 
+        // 🔹 UC6 (existing)
+        public static QuantityLength add(QuantityLength a, QuantityLength b) {
+            double baseA = a.value * a.unit.getFactor();
+            double baseB = b.value * b.unit.getFactor();
+
+            double sumBase = baseA + baseB;
+
+            double result = sumBase / a.unit.getFactor();
+
+            return new QuantityLength(result, a.unit);
+        }
+
+        // 🔥 UC7 NEW METHOD (TARGET UNIT)
+        public static QuantityLength add(QuantityLength a,
+                                         QuantityLength b,
+                                         LengthUnit targetUnit) {
+
+            if (a == null || b == null || targetUnit == null) {
+                throw new IllegalArgumentException("Invalid input");
+            }
+
+            // Convert both to base (feet)
+            double baseA = a.value * a.unit.getFactor();
+            double baseB = b.value * b.unit.getFactor();
+
+            double sumBase = baseA + baseB;
+
+            // Convert to target unit
+            double result = sumBase / targetUnit.getFactor();
+
+            return new QuantityLength(result, targetUnit);
+        }
+
+        // 🔹 Equals
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             if (obj == null || getClass() != obj.getClass()) return false;
 
-            Feet other = (Feet) obj;
-            return Double.compare(this.value, other.value) == 0;
-        }
-    }
+            QuantityLength other = (QuantityLength) obj;
 
-    // ✅ Inches class (same structure → DRY violation intentionally for UC2)
-    static class Inches {
-        private final double value;
+            double thisBase = this.value * this.unit.getFactor();
+            double otherBase = other.value * other.unit.getFactor();
 
-        public Inches(double value) {
-            if (!Double.isFinite(value)) {
-                throw new IllegalArgumentException("Invalid value");
-            }
-            this.value = value;
+            return Math.abs(thisBase - otherBase) < EPSILON;
         }
 
         @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (obj == null || getClass() != obj.getClass()) return false;
-
-            Inches other = (Inches) obj;
-            return Double.compare(this.value, other.value) == 0;
+        public String toString() {
+            return value + " " + unit;
         }
     }
 
-    // ✅ Static methods (reduce main dependency)
-    public static boolean compareFeet(double a, double b) {
-        return new Feet(a).equals(new Feet(b));
-    }
-
-    public static boolean compareInches(double a, double b) {
-        return new Inches(a).equals(new Inches(b));
-    }
-
-    // ✅ Main
+    // ✅ Demo
     public static void main(String[] args) {
 
-        System.out.println("Feet Equal? " + compareFeet(1.0, 1.0));     // true
-        System.out.println("Inches Equal? " + compareInches(1.0, 1.0)); // true
+        QuantityLength a = new QuantityLength(1.0, LengthUnit.FEET);
+        QuantityLength b = new QuantityLength(12.0, LengthUnit.INCHES);
+
+        System.out.println(
+                QuantityLength.add(a, b, LengthUnit.FEET));   // 2.0 FEET
+
+        System.out.println(
+                QuantityLength.add(a, b, LengthUnit.INCHES)); // 24.0 INCHES
+
+        System.out.println(
+                QuantityLength.add(a, b, LengthUnit.YARDS));  // ~0.667 YARDS
     }
 }
