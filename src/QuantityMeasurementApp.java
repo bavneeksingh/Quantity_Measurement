@@ -1,129 +1,124 @@
-public class VolumeMeasurementApp {
+import java.util.Objects;
 
-    // 🔹 Interface
-    interface IMeasurable {
-        double getConversionFactor();
-        double convertToBaseUnit(double value);
-        double convertFromBaseUnit(double baseValue);
+public class Quantity<U extends IMeasurable> {
+
+    private final double value;
+    private final U unit;
+
+    public Quantity(double value, U unit) {
+        if (unit == null) {
+            throw new IllegalArgumentException("Unit cannot be null");
+        }
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            throw new IllegalArgumentException("Invalid numeric value");
+        }
+        this.value = value;
+        this.unit = unit;
     }
 
-    // 🔹 VolumeUnit Enum
-    enum VolumeUnit implements IMeasurable {
-        LITRE(1.0),
-        MILLILITRE(0.001),
-        GALLON(3.78541);
-
-        private final double factor;
-
-        VolumeUnit(double factor) {
-            this.factor = factor;
-        }
-
-        public double getConversionFactor() {
-            return factor;
-        }
-
-        public double convertToBaseUnit(double value) {
-            return value * factor;
-        }
-
-        public double convertFromBaseUnit(double baseValue) {
-            return baseValue / factor;
-        }
+    public double getValue() {
+        return value;
     }
 
-    // 🔹 Generic Quantity Class
-    static class Quantity<U extends IMeasurable> {
+    public U getUnit() {
+        return unit;
+    }
 
-        private final double value;
-        private final U unit;
-        private static final double EPS = 1e-6;
+    // =========================
+    // SUBTRACTION METHODS
+    // =========================
 
-        public Quantity(double value, U unit) {
-            if (!Double.isFinite(value)) {
-                throw new IllegalArgumentException("Invalid value");
-            }
-            if (unit == null) {
-                throw new IllegalArgumentException("Unit cannot be null");
-            }
-            this.value = value;
-            this.unit = unit;
+    // Implicit target unit (this.unit)
+    public Quantity<U> subtract(Quantity<U> other) {
+        return subtract(other, this.unit);
+    }
+
+    // Explicit target unit
+    public Quantity<U> subtract(Quantity<U> other, U targetUnit) {
+        validateOperand(other);
+        validateUnit(targetUnit);
+        ensureSameCategory(other);
+
+        double thisBase = unit.convertToBaseUnit(this.value);
+        double otherBase = other.unit.convertToBaseUnit(other.value);
+
+        double resultBase = thisBase - otherBase;
+
+        double result = targetUnit.convertFromBaseUnit(resultBase);
+        result = round(result);
+
+        return new Quantity<>(result, targetUnit);
+    }
+
+    // =========================
+    // DIVISION METHOD
+    // =========================
+
+    public double divide(Quantity<U> other) {
+        validateOperand(other);
+        ensureSameCategory(other);
+
+        double otherBase = other.unit.convertToBaseUnit(other.value);
+        if (otherBase == 0.0) {
+            throw new ArithmeticException("Division by zero");
         }
 
-        public double getValue() {
-            return value;
+        double thisBase = unit.convertToBaseUnit(this.value);
+
+        return thisBase / otherBase;
+    }
+
+    // =========================
+    // VALIDATION HELPERS
+    // =========================
+
+    private void validateOperand(Quantity<U> other) {
+        if (other == null) {
+            throw new IllegalArgumentException("Operand cannot be null");
         }
-
-        public U getUnit() {
-            return unit;
-        }
-
-        // 🔹 Convert
-        public Quantity<U> convertTo(U target) {
-            double base = unit.convertToBaseUnit(value);
-            double result = target.convertFromBaseUnit(base);
-            return new Quantity<>(result, target);
-        }
-
-        // 🔹 Add (default → first unit)
-        public Quantity<U> add(Quantity<U> other) {
-            return add(other, this.unit);
-        }
-
-        // 🔹 Add (explicit target)
-        public Quantity<U> add(Quantity<U> other, U target) {
-            if (other == null) {
-                throw new IllegalArgumentException("Null operand");
-            }
-
-            double base1 = unit.convertToBaseUnit(value);
-            double base2 = other.unit.convertToBaseUnit(other.value);
-
-            double sum = base1 + base2;
-
-            double result = target.convertFromBaseUnit(sum);
-            return new Quantity<>(result, target);
-        }
-
-        // 🔹 Equality
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            if (!(obj instanceof Quantity<?> other)) return false;
-
-            // Prevent cross-category comparison
-            if (!unit.getClass().equals(other.unit.getClass())) return false;
-
-            double base1 = unit.convertToBaseUnit(value);
-            double base2 = ((IMeasurable) other.unit)
-                    .convertToBaseUnit(other.value);
-
-            return Math.abs(base1 - base2) < EPS;
-        }
-
-        @Override
-        public String toString() {
-            return value + " " + unit;
+        if (Double.isNaN(other.value) || Double.isInfinite(other.value)) {
+            throw new IllegalArgumentException("Invalid operand value");
         }
     }
 
-    // 🔹 Main (demo)
-    public static void main(String[] args) {
+    private void validateUnit(U targetUnit) {
+        if (targetUnit == null) {
+            throw new IllegalArgumentException("Target unit cannot be null");
+        }
+    }
 
-        Quantity<VolumeUnit> v1 = new Quantity<>(1.0, VolumeUnit.LITRE);
-        Quantity<VolumeUnit> v2 = new Quantity<>(1000.0, VolumeUnit.MILLILITRE);
-        Quantity<VolumeUnit> v3 = new Quantity<>(1.0, VolumeUnit.GALLON);
+    private void ensureSameCategory(Quantity<U> other) {
+        if (!this.unit.getClass().equals(other.unit.getClass())) {
+            throw new IllegalArgumentException("Cross-category operation not allowed");
+        }
+    }
 
-        // Equality
-        System.out.println(v1.equals(v2)); // true
+    // =========================
+    // UTILITY METHODS
+    // =========================
 
-        // Conversion
-        System.out.println(v1.convertTo(VolumeUnit.MILLILITRE)); // 1000 mL
+    private double round(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
 
-        // Addition
-        System.out.println(v1.add(v2)); // 2 L
+    @Override
+    public String toString() {
+        return "Quantity(" + value + ", " + unit + ")";
+    }
 
-        // Explicit unit
-        System.out.println(v1.add(v3, VolumeUnit.MILLILITRE)); // ~4785.41 mL
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof Quantity<?> other)) return false;
+
+        double thisBase = this.unit.convertToBaseUnit(this.value);
+        double otherBase = other.unit.convertToBaseUnit((double) other.value);
+
+        return Math.abs(thisBase - otherBase) < 0.0001;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(unit.convertToBaseUnit(value));
     }
 }
