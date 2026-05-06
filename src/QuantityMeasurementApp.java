@@ -1,65 +1,106 @@
+public enum LengthUnit {
+
+    FEET(1.0),
+    INCHES(1.0 / 12.0),
+    YARDS(3.0),
+    CENTIMETERS(0.0328084);
+
+    private final double factor;
+
+    LengthUnit(double factor) {
+        this.factor = factor;
+    }
+
+    public double getFactor() {
+        return factor;
+    }
+}
+public class QuantityLength {
+
+    private final double value;
+    private final LengthUnit unit;
+    private static final double EPSILON = 1e-6;
+
+    public QuantityLength(double value, LengthUnit unit) {
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Invalid value");
+        }
+        if (unit == null) {
+            throw new IllegalArgumentException("Unit cannot be null");
+        }
+        this.value = value;
+        this.unit = unit;
+    }
+
+    public double getValue() {
+        return value;
+    }
+
+    public LengthUnit getUnit() {
+        return unit;
+    }
+
+    // 🔹 Static API (UC5 requirement)
+    public static double convert(double value, LengthUnit source, LengthUnit target) {
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Invalid value");
+        }
+        if (source == null || target == null) {
+            throw new IllegalArgumentException("Units cannot be null");
+        }
+
+        // Convert to base (feet)
+        double baseValue = value * source.getFactor();
+
+        // Convert to target
+        return baseValue / target.getFactor();
+    }
+
+    // 🔹 Instance method (immutability)
+    public QuantityLength convertTo(LengthUnit target) {
+        double converted = convert(this.value, this.unit, target);
+        return new QuantityLength(converted, target);
+    }
+
+    // 🔹 equals override (compare via base unit)
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (!(obj instanceof QuantityLength)) return false;
+
+        QuantityLength other = (QuantityLength) obj;
+
+        double thisBase = this.value * this.unit.getFactor();
+        double otherBase = other.value * other.unit.getFactor();
+
+        return Math.abs(thisBase - otherBase) < EPSILON;
+    }
+
+    // 🔹 toString override
+    @Override
+    public String toString() {
+        return value + " " + unit;
+    }
+}
 public class QuantityMeasurementApp {
 
-    // ✅ Updated Enum (ONLY place we change code)
-    enum LengthUnit {
-        FEET(1.0),
-
-        INCH(1.0 / 12.0),        // 1 inch = 1/12 feet
-
-        YARD(3.0),               // 1 yard = 3 feet
-
-        CENTIMETER(0.0328084);   // 1 cm = 0.0328084 feet
-        // (0.393701 inch ÷ 12)
-
-        private final double toFeetFactor;
-
-        LengthUnit(double toFeetFactor) {
-            this.toFeetFactor = toFeetFactor;
-        }
-
-        public double toFeet(double value) {
-            return value * toFeetFactor;
-        }
+    public static double demonstrateLengthConversion(double value,
+                                                     LengthUnit from,
+                                                     LengthUnit to) {
+        return QuantityLength.convert(value, from, to);
     }
 
-    // ✅ Same class as UC3 (NO changes needed)
-    static class QuantityLength {
-        private final double value;
-        private final LengthUnit unit;
-
-        public QuantityLength(double value, LengthUnit unit) {
-            if (unit == null) {
-                throw new IllegalArgumentException("Unit cannot be null");
-            }
-            this.value = value;
-            this.unit = unit;
-        }
-
-        public double toBaseUnit() {
-            return unit.toFeet(value);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-
-            if (this == obj) return true;
-
-            if (obj == null) return false;
-
-            if (getClass() != obj.getClass()) return false;
-
-            QuantityLength other = (QuantityLength) obj;
-
-            return Double.compare(this.toBaseUnit(), other.toBaseUnit()) == 0;
-        }
+    // Overloaded method
+    public static QuantityLength demonstrateLengthConversion(QuantityLength length,
+                                                             LengthUnit to) {
+        return length.convertTo(to);
     }
 
-    // ✅ Demo
     public static void main(String[] args) {
+        System.out.println(convert(1.0, LengthUnit.FEET, LengthUnit.INCHES)); // 12.0
+    }
 
-        QuantityLength q1 = new QuantityLength(1.0, LengthUnit.YARD);
-        QuantityLength q2 = new QuantityLength(36.0, LengthUnit.INCH);
-
-        System.out.println(q1.equals(q2)); // true
+    public static double convert(double value, LengthUnit from, LengthUnit to) {
+        return QuantityLength.convert(value, from, to);
     }
 }
