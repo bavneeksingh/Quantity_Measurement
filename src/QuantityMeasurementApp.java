@@ -1,54 +1,63 @@
 public class QuantityMeasurementApp {
 
-    // Inner class representing Feet measurement
-    static class Feet {
-        private final double value;
+    // Step 1: Enum for units with conversion factors (base unit = FEET)
+    enum LengthUnit {
+        FEET(1.0),
+        INCH(1.0 / 12.0);
 
-        // Constructor
-        public Feet(double value) {
-            this.value = value;
+        private final double toFeetFactor;
+
+        LengthUnit(double toFeetFactor) {
+            this.toFeetFactor = toFeetFactor;
         }
 
-        // Getter (optional)
-        public double getValue() {
-            return value;
-        }
-
-        // Override equals method
-        @Override
-        public boolean equals(Object obj) {
-
-            // Same reference check (Reflexive)
-            if (this == obj) {
-                return true;
-            }
-
-            // Null check
-            if (obj == null) {
-                return false;
-            }
-
-            // Type check
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-
-            // Type casting
-            Feet other = (Feet) obj;
-
-            // Compare double values safely
-            return Double.compare(this.value, other.value) == 0;
+        public double toFeet(double value) {
+            return value * toFeetFactor;
         }
     }
 
-    // Main method to test manually
+    // Step 2: Single class for all length measurements
+    static class QuantityLength {
+        private final double value;
+        private final LengthUnit unit;
+
+        public QuantityLength(double value, LengthUnit unit) {
+            if (unit == null) {
+                throw new IllegalArgumentException("Unit cannot be null");
+            }
+            this.value = value;
+            this.unit = unit;
+        }
+
+        public double toBaseUnit() {
+            return unit.toFeet(value);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+
+            // Reflexive
+            if (this == obj) return true;
+
+            // Null check
+            if (obj == null) return false;
+
+            // Type check
+            if (getClass() != obj.getClass()) return false;
+
+            QuantityLength other = (QuantityLength) obj;
+
+            // Compare after converting to common base (feet)
+            return Double.compare(this.toBaseUnit(), other.toBaseUnit()) == 0;
+        }
+    }
+
+    // Demo
     public static void main(String[] args) {
 
-        Feet f1 = new Feet(1.0);
-        Feet f2 = new Feet(1.0);
+        QuantityLength q1 = new QuantityLength(1.0, LengthUnit.FEET);
+        QuantityLength q2 = new QuantityLength(12.0, LengthUnit.INCH);
 
-        boolean result = f1.equals(f2);
-
-        System.out.println("Are values equal? " + result);
+        System.out.println("Are equal? " + q1.equals(q2)); // true
     }
 }
